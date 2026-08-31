@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cargar factura — San Jorge</title>
+<link rel="manifest" href="./manifest.json">
+<meta name="theme-color" content="#2F4A2B">
+<style>
+  body{
+    font-family:'Inter',Arial,sans-serif;
+    background:#EFE8D8;
+    color:#2B2620;
+    margin:0;
+    padding:24px 18px 60px;
+  }
+  h1{font-size:20px;margin:0 0 4px;}
+  p.sub{color:#5B5344;font-size:14px;margin:0 0 24px;}
+  .card{
+    background:#F8F3E6;
+    border:1px solid #CBBFA2;
+    border-radius:6px;
+    padding:18px;
+    margin-bottom:16px;
+  }
+  input[type=file]{
+    display:block;width:100%;padding:12px;
+    border:1.5px dashed #CBBFA2;border-radius:6px;
+    background:#fff;font-size:14px;
+  }
+  button{
+    width:100%;padding:14px;border:none;border-radius:6px;
+    font-size:15px;font-weight:600;cursor:pointer;margin-top:10px;
+  }
+  .btn-primary{background:#2F4A2B;color:#F3EEDF;}
+  .btn-confirm{background:#3F6B3D;color:#fff;}
+  button:disabled{opacity:0.5;cursor:default;}
+  label{
+    display:block;font-size:12px;text-transform:uppercase;
+    letter-spacing:0.05em;color:#5B5344;margin:12px 0 4px;
+  }
+  input[type=text], input[type=number], select{
+    width:100%;padding:10px;border:1px solid #CBBFA2;
+    border-radius:4px;font-size:15px;box-sizing:border-box;
+  }
+  #estado{font-size:14px;color:#5B5344;margin-top:10px;text-align:center;}
+  #revision, #ok{display:none;}
+  #ok{text-align:center;padding:30px 10px;}
+  #ok .check{font-size:40px;}
+</style>
+</head>
+<body>
+
+  <h1>Cargar factura</h1>
+  <p class="sub">San Jorge — Ascensión, Buenos Aires</p>
+
+  <div class="card" id="paso1">
+    <label>Foto o PDF de la factura</label>
+    <input type="file" id="archivo" accept="application/pdf,image/*" capture="environment">
+    <button class="btn-primary" id="btnLeer" onclick="leer()">Leer factura</button>
+    <p id="estado"></p>
+  </div>
+
+  <div class="card" id="revision">
+    <p class="sub" style="margin-bottom:14px;">Revisá los datos antes de guardar:</p>
+
+    <label>Proveedor</label>
+    <input type="text" id="proveedor">
+    <label>CUIT proveedor</label>
+    <input type="text" id="cuit" placeholder="XX-XXXXXXXX-X">
+    <label>Concepto</label>
+    <input type="text" id="concepto">
+    <label>Rubro</label>
+    <input type="text" id="rubro">
+    <label>Nº de factura</label>
+    <input type="text" id="nroFactura">
+    <label>Fecha</label>
+    <input type="text" id="fecha">
+    <label>Monto ($)</label>
+    <input type="number" id="monto">
+
+    <label>¿Ya la pagaste?</label>
+    <div style="display:flex;gap:16px;margin-top:4px;">
+      <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:normal;font-size:15px;color:#2B2620;">
+        <input type="radio" name="yaPagada" value="no" checked onchange="togglePago()"> No
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:normal;font-size:15px;color:#2B2620;">
+        <input type="radio" name="yaPagada" value="si" onchange="togglePago()"> Sí
+      </label>
+    </div>
+    <div id="bloqueFormaPago" style="display:none;">
+      <label>Forma de pago</label>
+      <select id="formaDePago">
+        <option value="Efectivo">Efectivo</option>
+        <option value="Transferencia">Transferencia</option>
+        <option value="Tarjeta">Tarjeta</option>
+      </select>
+    </div>
+
+    <button class="btn-confirm" id="btnGuardar" onclick="guardar()">Confirmar y guardar</button>
+  </div>
+
+  <div class="card" id="ok">
+    <div class="check">✓</div>
+    <p id="okTexto">Factura cargada.</p>
+    <button class="btn-primary" onclick="location.href='./index.html'">Cargar otra</button>
+  </div>
+
+<script>
+  // ⚠️ Reemplazá esta URL por tu link de Apps Script (el que termina en /exec)
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwfcjBDQ_Ol0j3xD8TwRf5RRWygrCVYzUgTxHfrGmFqPkhulxo08m4Oi0XiLrO7vqUb/exec';
+
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('./sw.js');
+  }
+
+  async function llamarBackend(accion, extra){
+    const resp = await fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita el preflight CORS
+      body: JSON.stringify(Object.assign({ accion }, extra))
+    });
+    const json = await resp.json();
+    if (!json.ok) throw new Error(json.error || 'Error desconocido');
+    return json.datos;
+  }
+
+  function leerArchivo(file){
+    document.getElementById('btnLeer').disabled = true;
+    document.getElementById('estado').textContent = 'Leyendo factura, un momento...';
+
+    if(file.type === 'application/pdf'){
+      const reader = new FileReader();
+      reader.onload = e => procesarLectura(e.target.result.split(',')[1], file.type, file.name);
+      reader.readAsDataURL(file);
+      return;
+    }
+
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = function(e){
+      img.onload = function(){
+        const maxAncho = 1600;
+        const escala = Math.min(1, maxAncho / img.width);
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width * escala;
+        canvas.height = img.height * escala;
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        procesarLectura(dataUrl.split(',')[1], 'image/jpeg', file.name);
+      };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  function leer(){
+    const input = document.getElementById('archivo');
+    if(!input.files.length){
+      document.getElementById('estado').textContent = 'Elegí un archivo primero.';
+      return;
+    }
+    leerArchivo(input.files[0]);
+  }
+
+  async function procesarLectura(base64, mimeType, nombreArchivo){
+    try{
+      const datos = await llamarBackend('leer', { base64, mimeType, nombreArchivo });
+      document.getElementById('btnLeer').disabled = false;
+      document.getElementById('estado').textContent = '';
+      mostrarRevision(datos);
+    } catch(err){
+      document.getElementById('btnLeer').disabled = false;
+      document.getElementById('estado').textContent = 'Error: ' + err.message;
+    }
+  }
+
+  function togglePago(){
+    const si = document.querySelector('input[name="yaPagada"]:checked').value === 'si';
+    document.getElementById('bloqueFormaPago').style.display = si ? 'block' : 'none';
+  }
+
+  function mostrarRevision(datos){
+    const alertas = datos.alertas || [];
+    if(alertas.length){
+      const continuar = confirm('⚠️ ' + alertas.join('\n⚠️ ') + '\n\n¿Querés cargarla igual?');
+      if(!continuar){
+        document.getElementById('estado').textContent = 'Carga cancelada.';
+        return;
+      }
+    }
+    document.getElementById('proveedor').value = datos.proveedor || '';
+    document.getElementById('cuit').value = datos.cuit || '';
+    document.getElementById('concepto').value = datos.concepto || '';
+    document.getElementById('rubro').value = datos.rubro || '';
+    document.getElementById('nroFactura').value = datos.nro_factura || '';
+    document.getElementById('fecha').value = datos.fecha || '';
+    document.getElementById('monto').value = datos.monto || '';
+    document.querySelector('input[name="yaPagada"][value="no"]').checked = true;
+    togglePago();
+    document.getElementById('paso1').style.display = 'none';
+    document.getElementById('revision').style.display = 'block';
+    document.getElementById('btnGuardar').disabled = false;
+  }
+
+  async function guardar(){
+    const btn = document.getElementById('btnGuardar');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+    const yaPagada = document.querySelector('input[name="yaPagada"]:checked').value === 'si';
+    const datos = {
+      proveedor: document.getElementById('proveedor').value,
+      cuit: document.getElementById('cuit').value,
+      concepto: document.getElementById('concepto').value,
+      rubro: document.getElementById('rubro').value,
+      nro_factura: document.getElementById('nroFactura').value,
+      fecha: document.getElementById('fecha').value,
+      monto: document.getElementById('monto').value,
+      estado: yaPagada ? 'Pagada' : 'Pendiente',
+      formaDePago: yaPagada ? document.getElementById('formaDePago').value : ''
+    };
+    try{
+      await llamarBackend('guardar', { datos });
+      document.getElementById('okTexto').innerHTML = 'Factura cargada como <b>' + datos.estado + '</b>.';
+      document.getElementById('revision').style.display = 'none';
+      document.getElementById('ok').style.display = 'block';
+    } catch(err){
+      btn.disabled = false;
+      btn.textContent = 'Confirmar y guardar';
+      alert('Error al guardar: ' + err.message);
+    }
+  }
+
+  // Si la app se abrió porque alguien compartió una foto desde WhatsApp,
+  // el service worker ya la dejó guardada — la recuperamos y arrancamos solos.
+  async function revisarSiHayCompartido(){
+    const params = new URLSearchParams(location.search);
+    if(params.get('compartido') !== '1') return;
+
+    try{
+      const cache = await caches.open('share-target-v1');
+      const resp = await cache.match('/archivo-compartido');
+      if(!resp) return;
+      const blob = await resp.blob();
+      const nombre = resp.headers.get('X-Nombre') || 'compartido';
+      await cache.delete('/archivo-compartido');
+      leerArchivo(new File([blob], nombre, { type: blob.type }));
+    } catch(err){
+      console.error(err);
+    }
+  }
+
+  revisarSiHayCompartido();
+</script>
+
+</body>
+</html>

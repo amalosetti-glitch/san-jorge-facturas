@@ -1,0 +1,28 @@
+{
+  "name": "Cargar factura — San Jorge",
+  "short_name": "San Jorge",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#EFE8D8",
+  "theme_color": "#2F4A2B",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "share_target": {
+    "action": "./share-target.html",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "files": [
+        {
+          "name": "factura",
+          "accept": ["image/*", "application/pdf"]
+        }
+      ]
+    }
+  }
+}
