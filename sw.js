@@ -12,7 +12,7 @@ self.addEventListener('fetch', (event) => {
   if (event.request.method === 'POST' && url.pathname.endsWith('/share-target.html')) {
     event.respondWith((async () => {
       const formData = await event.request.formData();
-      const archivo = formData.get('foto') || formData.get('documento');
+      const archivo = formData.get('factura');
 
       if (archivo) {
         const cache = await caches.open('share-target-v1');
