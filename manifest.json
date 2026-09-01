@@ -19,8 +19,12 @@
     "params": {
       "files": [
         {
-          "name": "factura",
-          "accept": ["image/*", "application/pdf"]
+          "name": "foto",
+          "accept": ["image/*"]
+        },
+        {
+          "name": "documento",
+          "accept": ["application/pdf"]
         }
       ]
     }
