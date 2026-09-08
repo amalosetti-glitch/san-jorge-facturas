@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Cargar factura — San Jorge</title>
+<title>Cargar documento — San Jorge</title>
 <link rel="manifest" href="./manifest.json">
 <meta name="theme-color" content="#2F4A2B">
 <style>
@@ -43,6 +43,7 @@
     width:100%;padding:10px;border:1px solid #CBBFA2;
     border-radius:4px;font-size:15px;box-sizing:border-box;
   }
+  #tipoDocumento{font-weight:600;border-color:#2F4A2B;}
   #estado{font-size:14px;color:#5B5344;margin-top:10px;text-align:center;}
   #revision, #ok{display:none;}
   #ok{text-align:center;padding:30px 10px;}
@@ -51,49 +52,99 @@
 </head>
 <body>
 
-  <h1>Cargar factura</h1>
+  <h1>Cargar documento</h1>
   <p class="sub">San Jorge — Ascensión, Buenos Aires</p>
 
   <div class="card" id="paso1">
-    <label>Foto o PDF de la factura</label>
+    <label>Foto o PDF (factura, carta de porte o liquidación)</label>
     <input type="file" id="archivo" accept="application/pdf,image/*" capture="environment">
-    <button class="btn-primary" id="btnLeer" onclick="leer()">Leer factura</button>
+    <button class="btn-primary" id="btnLeer" onclick="leer()">Leer documento</button>
     <p id="estado"></p>
   </div>
 
   <div class="card" id="revision">
     <p class="sub" style="margin-bottom:14px;">Revisá los datos antes de guardar:</p>
 
-    <label>Proveedor</label>
-    <input type="text" id="proveedor">
-    <label>CUIT proveedor</label>
-    <input type="text" id="cuit" placeholder="XX-XXXXXXXX-X">
-    <label>Concepto</label>
-    <input type="text" id="concepto">
-    <label>Rubro</label>
-    <input type="text" id="rubro">
-    <label>Nº de factura</label>
-    <input type="text" id="nroFactura">
+    <label>Tipo de documento</label>
+    <select id="tipoDocumento" onchange="mostrarCamposSegunTipo()">
+      <option value="Factura">Factura</option>
+      <option value="Carta de Porte">Carta de Porte</option>
+      <option value="Liquidación">Liquidación</option>
+    </select>
+
     <label>Fecha</label>
     <input type="text" id="fecha">
-    <label>Monto ($)</label>
-    <input type="number" id="monto">
 
-    <label>¿Ya la pagaste?</label>
-    <div style="display:flex;gap:16px;margin-top:4px;">
-      <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:normal;font-size:15px;color:#2B2620;">
-        <input type="radio" name="yaPagada" value="no" checked onchange="togglePago()"> No
-      </label>
-      <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:normal;font-size:15px;color:#2B2620;">
-        <input type="radio" name="yaPagada" value="si" onchange="togglePago()"> Sí
-      </label>
+    <div id="camposFactura">
+      <label>Proveedor</label>
+      <input type="text" id="proveedor">
+      <label>CUIT proveedor</label>
+      <input type="text" id="cuit" placeholder="XX-XXXXXXXX-X">
+      <label>Concepto</label>
+      <input type="text" id="concepto">
+      <label>Rubro</label>
+      <input type="text" id="rubro">
+      <label>Nº de factura</label>
+      <input type="text" id="nroFactura">
+      <label>Monto ($)</label>
+      <input type="number" id="monto">
+      <label>¿Ya la pagaste?</label>
+      <div style="display:flex;gap:16px;margin-top:4px;">
+        <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:normal;font-size:15px;color:#2B2620;">
+          <input type="radio" name="yaPagada" value="no" checked onchange="togglePago()"> No
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;text-transform:none;letter-spacing:normal;font-size:15px;color:#2B2620;">
+          <input type="radio" name="yaPagada" value="si" onchange="togglePago()"> Sí
+        </label>
+      </div>
+      <div id="bloqueFormaPago" style="display:none;">
+        <label>Forma de pago</label>
+        <select id="formaDePago">
+          <option value="Efectivo">Efectivo</option>
+          <option value="Transferencia">Transferencia</option>
+          <option value="Tarjeta">Tarjeta</option>
+        </select>
+      </div>
     </div>
-    <div id="bloqueFormaPago" style="display:none;">
-      <label>Forma de pago</label>
-      <select id="formaDePago">
-        <option value="Efectivo">Efectivo</option>
-        <option value="Transferencia">Transferencia</option>
-        <option value="Tarjeta">Tarjeta</option>
+
+    <div id="camposCartaPorte">
+      <label>Grano</label>
+      <input type="text" id="granoCartaPorte">
+      <label>Nº Carta de Porte</label>
+      <input type="text" id="nroCartaPorte">
+      <label>Razón social comprador</label>
+      <input type="text" id="razonSocialComprador">
+      <label>Transportista</label>
+      <input type="text" id="transportista">
+      <label>Puerto destino</label>
+      <input type="text" id="puertoDestino">
+      <label>Destinatario</label>
+      <input type="text" id="destinatario">
+      <label>Kg cargados</label>
+      <input type="number" id="kgCargados">
+    </div>
+
+    <div id="camposLiquidacion">
+      <label>Nº Liquidación</label>
+      <input type="text" id="nroLiquidacion">
+      <label>Nº Contrato</label>
+      <input type="text" id="contrato">
+      <label>Cereal</label>
+      <input type="text" id="cereal">
+      <label>Cantidad (Tn)</label>
+      <input type="number" id="cantidadTn">
+      <label>Razón social comprador</label>
+      <input type="text" id="razonSocialCompradorLiq">
+      <label>Precio (por tn)</label>
+      <input type="number" id="precio">
+      <label>Monto total ($)</label>
+      <input type="number" id="montoLiquidacion">
+      <label>Flete descontado ($) — si corresponde</label>
+      <input type="number" id="fleteLiquidacion">
+      <label>Tipo de liquidación</label>
+      <select id="tipoLiquidacion">
+        <option value="Liquidación">Liquidación (venta normal)</option>
+        <option value="Liquidación de Consumo">Liquidación de Consumo</option>
       </select>
     </div>
 
@@ -102,12 +153,11 @@
 
   <div class="card" id="ok">
     <div class="check">✓</div>
-    <p id="okTexto">Factura cargada.</p>
-    <button class="btn-primary" onclick="location.href='./index.html'">Cargar otra</button>
+    <p id="okTexto">Documento cargado.</p>
+    <button class="btn-primary" onclick="location.href='./index.html'">Cargar otro</button>
   </div>
 
 <script>
-  // ⚠️ Reemplazá esta URL por tu link de Apps Script (el que termina en /exec)
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwfcjBDQ_OI0j3xD8TwRf5RRWygrCVYzUgTxHfrGmFqPkhuIxo08m4Oi0XiLrO7vqUb/exec';
 
   if ('serviceWorker' in navigator) {
@@ -121,7 +171,7 @@
     try {
       resp = await fetch(APPS_SCRIPT_URL, {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain;charset=utf-8' }, // evita el preflight CORS
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
         body: JSON.stringify(Object.assign({ accion }, extra)),
         signal: controller.signal
       });
@@ -140,7 +190,7 @@
 
   function leerArchivo(file){
     document.getElementById('btnLeer').disabled = true;
-    document.getElementById('estado').textContent = 'Leyendo factura, un momento...';
+    document.getElementById('estado').textContent = 'Leyendo documento, un momento...';
 
     const pareceSerPdf = file.type === 'application/pdf' ||
       (file.name || '').toLowerCase().endsWith('.pdf');
@@ -173,11 +223,6 @@
     reader.readAsDataURL(file);
   }
 
-  function mostrarErrorLectura(mensaje){
-    document.getElementById('btnLeer').disabled = false;
-    document.getElementById('estado').textContent = 'Error: ' + mensaje;
-  }
-
   function leer(){
     const input = document.getElementById('archivo');
     if(!input.files.length){
@@ -187,6 +232,13 @@
     leerArchivo(input.files[0]);
   }
 
+  function mostrarErrorLectura(mensaje){
+    document.getElementById('btnLeer').disabled = false;
+    document.getElementById('estado').textContent = 'Error: ' + mensaje;
+  }
+
+  let ultimoResultadoIA = null;
+
   async function procesarLectura(base64, mimeType, nombreArchivo){
     try{
       const datos = await llamarBackend('leer', { base64, mimeType, nombreArchivo });
@@ -194,14 +246,20 @@
       document.getElementById('estado').textContent = '';
       mostrarRevision(datos);
     } catch(err){
-      document.getElementById('btnLeer').disabled = false;
-      document.getElementById('estado').textContent = 'Error: ' + err.message;
+      mostrarErrorLectura(err.message);
     }
   }
 
   function togglePago(){
     const si = document.querySelector('input[name="yaPagada"]:checked').value === 'si';
     document.getElementById('bloqueFormaPago').style.display = si ? 'block' : 'none';
+  }
+
+  function mostrarCamposSegunTipo(){
+    const tipo = document.getElementById('tipoDocumento').value;
+    document.getElementById('camposFactura').style.display = tipo === 'Factura' ? 'block' : 'none';
+    document.getElementById('camposCartaPorte').style.display = tipo === 'Carta de Porte' ? 'block' : 'none';
+    document.getElementById('camposLiquidacion').style.display = tipo === 'Liquidación' ? 'block' : 'none';
   }
 
   function mostrarRevision(datos){
@@ -213,15 +271,39 @@
         return;
       }
     }
+
+    ultimoResultadoIA = datos;
+    document.getElementById('tipoDocumento').value = datos.tipo_documento || 'Factura';
+    document.getElementById('fecha').value = datos.fecha || '';
+
     document.getElementById('proveedor').value = datos.proveedor || '';
     document.getElementById('cuit').value = datos.cuit || '';
     document.getElementById('concepto').value = datos.concepto || '';
     document.getElementById('rubro').value = datos.rubro || '';
     document.getElementById('nroFactura').value = datos.nro_factura || '';
-    document.getElementById('fecha').value = datos.fecha || '';
     document.getElementById('monto').value = datos.monto || '';
     document.querySelector('input[name="yaPagada"][value="no"]').checked = true;
     togglePago();
+
+    document.getElementById('nroCartaPorte').value = datos.nro_carta_porte || '';
+    document.getElementById('granoCartaPorte').value = datos.cereal || 'Soja';
+    document.getElementById('razonSocialComprador').value = datos.razon_social_comprador || '';
+    document.getElementById('transportista').value = datos.transportista || '';
+    document.getElementById('puertoDestino').value = datos.puerto_destino || '';
+    document.getElementById('destinatario').value = datos.destinatario || '';
+    document.getElementById('kgCargados').value = datos.kg_cargados || '';
+
+    document.getElementById('nroLiquidacion').value = datos.nro_liquidacion || '';
+    document.getElementById('contrato').value = datos.contrato || '';
+    document.getElementById('cereal').value = datos.cereal || 'Soja';
+    document.getElementById('cantidadTn').value = datos.cantidad_tn || '';
+    document.getElementById('razonSocialCompradorLiq').value = datos.razon_social_comprador || '';
+    document.getElementById('precio').value = datos.precio || '';
+    document.getElementById('montoLiquidacion').value = datos.monto || '';
+    document.getElementById('fleteLiquidacion').value = datos.flete || '';
+    document.getElementById('tipoLiquidacion').value = datos.tipo_liquidacion || 'Liquidación';
+
+    mostrarCamposSegunTipo();
     document.getElementById('paso1').style.display = 'none';
     document.getElementById('revision').style.display = 'block';
     document.getElementById('btnGuardar').disabled = false;
@@ -231,21 +313,51 @@
     const btn = document.getElementById('btnGuardar');
     btn.disabled = true;
     btn.textContent = 'Guardando...';
-    const yaPagada = document.querySelector('input[name="yaPagada"]:checked').value === 'si';
-    const datos = {
-      proveedor: document.getElementById('proveedor').value,
-      cuit: document.getElementById('cuit').value,
-      concepto: document.getElementById('concepto').value,
-      rubro: document.getElementById('rubro').value,
-      nro_factura: document.getElementById('nroFactura').value,
-      fecha: document.getElementById('fecha').value,
-      monto: document.getElementById('monto').value,
-      estado: yaPagada ? 'Pagada' : 'Pendiente',
-      formaDePago: yaPagada ? document.getElementById('formaDePago').value : ''
-    };
+
+    const tipo = document.getElementById('tipoDocumento').value;
+    const fecha = document.getElementById('fecha').value;
+    const archivoOriginal = ultimoResultadoIA ? ultimoResultadoIA.archivoOriginal : '';
+    let datos = { tipo_documento: tipo, fecha: fecha, archivoOriginal: archivoOriginal };
+
+    if(tipo === 'Factura'){
+      const yaPagada = document.querySelector('input[name="yaPagada"]:checked').value === 'si';
+      Object.assign(datos, {
+        proveedor: document.getElementById('proveedor').value,
+        cuit: document.getElementById('cuit').value,
+        concepto: document.getElementById('concepto').value,
+        rubro: document.getElementById('rubro').value,
+        nro_factura: document.getElementById('nroFactura').value,
+        monto: document.getElementById('monto').value,
+        estado: yaPagada ? 'Pagada' : 'Pendiente',
+        formaDePago: yaPagada ? document.getElementById('formaDePago').value : ''
+      });
+    } else if(tipo === 'Carta de Porte'){
+      Object.assign(datos, {
+        nro_carta_porte: document.getElementById('nroCartaPorte').value,
+        cereal: document.getElementById('granoCartaPorte').value,
+        razon_social_comprador: document.getElementById('razonSocialComprador').value,
+        transportista: document.getElementById('transportista').value,
+        puerto_destino: document.getElementById('puertoDestino').value,
+        destinatario: document.getElementById('destinatario').value,
+        kg_cargados: document.getElementById('kgCargados').value
+      });
+    } else if(tipo === 'Liquidación'){
+      Object.assign(datos, {
+        nro_liquidacion: document.getElementById('nroLiquidacion').value,
+        contrato: document.getElementById('contrato').value,
+        cereal: document.getElementById('cereal').value,
+        cantidad_tn: document.getElementById('cantidadTn').value,
+        razon_social_comprador: document.getElementById('razonSocialCompradorLiq').value,
+        precio: document.getElementById('precio').value,
+        monto: document.getElementById('montoLiquidacion').value,
+        flete: document.getElementById('fleteLiquidacion').value,
+        tipo_liquidacion: document.getElementById('tipoLiquidacion').value
+      });
+    }
+
     try{
       await llamarBackend('guardar', { datos });
-      document.getElementById('okTexto').innerHTML = 'Factura cargada como <b>' + datos.estado + '</b>.';
+      document.getElementById('okTexto').textContent = tipo + ' cargada correctamente.';
       document.getElementById('revision').style.display = 'none';
       document.getElementById('ok').style.display = 'block';
     } catch(err){
@@ -255,12 +367,9 @@
     }
   }
 
-  // Si la app se abrió porque alguien compartió una foto desde WhatsApp,
-  // el service worker ya la dejó guardada — la recuperamos y arrancamos solos.
   async function revisarSiHayCompartido(){
     const params = new URLSearchParams(location.search);
     if(params.get('compartido') !== '1') return;
-
     try{
       const cache = await caches.open('share-target-v1');
       const resp = await cache.match('/archivo-compartido');
